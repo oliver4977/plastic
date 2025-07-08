@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>플라스틱 절감 포인트 계산기</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      background: #f0f8ff;
+    }
+    h2 {
+      color: #2a5d9f;
+    }
+    input, button {
+      padding: 10px;
+      margin: 8px 0;
+      width: 100%;
+      max-width: 400px;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background: #e6f2ff;
+      border-left: 5px solid #2a5d9f;
+      width: 100%;
+      max-width: 400px;
+    }
+  </style>
+</head>
+<body>
+  <h2>아파트 단지 플라스틱 절감 계산기</h2>
+
+  <label>단지 이름:</label><br>
+  <input type="text" id="aptName" placeholder="예: 푸르지오 102동"><br>
+
+  <label>이번 달 사용량 (kg):</label><br>
+  <input type="number" id="usage" placeholder="예: 85"><br>
+
+  <button onclick="calculate()">계산하기</button>
+
+  <div class="result" id="output" style="display:none;"></div>
+
+  <script>
+    function calculate() {
+      const 기준량 = 100;
+      const apt = document.getElementById("aptName").value;
+      const usage = parseFloat(document.getElementById("usage").value);
+
+      if (!apt || isNaN(usage)) {
+        alert("모든 정보를 정확히 입력하세요.");
+        return;
+      }
+
+      let 절감량 = 기준량 - usage;
+      let 포인트 = 절감량 > 0 ? 절감량 * 10 : 0;
+      let 감면액 = 포인트 * 100;
+
+      const outputDiv = document.getElementById("output");
+      outputDiv.style.display = "block";
+      outputDiv.innerHTML = `
+        <strong>${apt}</strong> 단지의 결과입니다:<br><br>
+        ▶ 기준 사용량: ${기준량}kg<br>
+        ▶ 실제 사용량: ${usage}kg<br>
+        ▶ 절감량: ${절감량 > 0 ? 절감량 + "kg" : "0kg"}<br>
+        ▶ 적립 포인트: ${포인트}점<br>
+        ▶ 세금 감면 예상액: ${감면액.toLocaleString()}원
+      `;
+    }
+  </script>
+</body>
+</html>
