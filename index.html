@@ -7,60 +7,126 @@
     body {
       font-family: 'Segoe UI', sans-serif;
       background: #f4f8fc;
-      padding: 40px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      margin: 0;
+      padding: 20px 20px 20px 260px;
     }
-    h2 {
+
+    header {
+      background-color: #2a5d9f;
+      color: white;
+      padding: 15px;
+      font-size: 20px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      width: 240px;
+      background-color: #eef3fa;
+      height: 100%;
+      padding: 20px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+
+    .sidebar h3 {
       color: #2a5d9f;
+      margin-bottom: 10px;
     }
+
+    .sidebar p {
+      font-size: 18px;
+      color: #007700;
+      font-weight: bold;
+    }
+
+    main {
+      max-width: 600px;
+      margin: 100px auto;
+      padding: 20px;
+    }
+
     input, button {
       padding: 10px;
       margin: 10px 0;
-      width: 300px;
+      width: 100%;
       font-size: 16px;
     }
+
     button {
       background-color: #2a5d9f;
       color: white;
       border: none;
       cursor: pointer;
     }
+
     .card {
       background: white;
       padding: 20px;
       border-radius: 10px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       margin-top: 20px;
-      width: 340px;
     }
-    .card h3 {
-      margin-bottom: 10px;
-      color: #2a5d9f;
-    }
+
     .highlight {
       color: #007700;
       font-weight: bold;
     }
+
     .message {
       margin-top: 10px;
       padding: 10px;
       background-color: #e6f7ff;
       border-left: 5px solid #3399ff;
     }
+
+    .notice {
+      font-size: 14px;
+      color: #666;
+      margin-top: 30px;
+      background: #fff4d6;
+      padding: 10px;
+      border-left: 4px solid #ffaa00;
+    }
+
+    .history {
+      background: #fff;
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px dashed #999;
+    }
   </style>
 </head>
 <body>
 
-  <h2>플라스틱 절감 포인트 계산기</h2>
+  <header>플라스틱 절감 포인트 시스템</header>
 
-  <input type="text" id="aptName" placeholder="단지 이름 입력 (예: 푸르지오)">
-  <input type="number" id="usage" placeholder="이번 달 사용량 (kg)">
-  <input type="number" id="target" placeholder="목표 사용량 설정 (kg)">
-  <button onclick="calculate()">계산하기</button>
+  <div class="sidebar">
+    <h3>🏢 누적 포인트</h3>
+    <p id="pointBox">단지를 입력하세요</p>
+  </div>
 
-  <div class="card" id="output" style="display:none;"></div>
+  <main>
+    <h2>이번 달 사용량을 입력하세요</h2>
+    <input type="text" id="aptName" placeholder="단지 이름 (예: 푸르지오)">
+    <input type="number" id="usage" placeholder="이번 달 사용량 (kg)">
+    <input type="number" id="target" placeholder="목표 사용량 설정 (kg)">
+    <button onclick="calculate()">계산하기</button>
+
+    <div class="card" id="output" style="display:none;"></div>
+
+    <button onclick="showHistory()">📅 월별 기록 보기</button>
+    <div id="history" class="history" style="display:none;"></div>
+
+    <div class="notice">
+      ※ 실제 서비스 도입 시, 관리자 또는 스마트 계량기 연동을 통해 자동으로 사용량이 집계되도록 시스템을 확장할 수 있습니다.
+    </div>
+  </main>
 
   <script>
     const 기준량 = 100;
@@ -78,14 +144,25 @@
       const 절감량 = Math.max(0, 기준량 - usage);
       const 포인트 = 절감량 * 10;
       const 감면액 = 포인트 * 100;
-      const co2절감 = 절감량 * 2.5; // 가정: 1kg 플라스틱 절감 = 2.5kg CO2 감소
+      const co2절감 = 절감량 * 2.5;
 
+      const now = new Date();
+      const yearMonth = now.toISOString().slice(0, 7); // "2025-07"
+
+      // 누적 포인트 저장
       const key = `point_${apt}`;
       const 기존포인트 = parseInt(localStorage.getItem(key)) || 0;
       const 누적포인트 = 기존포인트 + 포인트;
       localStorage.setItem(key, 누적포인트);
 
-      // 칭찬 메시지 설정
+      // 월별 변화 저장
+      const monthKey = `history_${apt}_${yearMonth}`;
+      localStorage.setItem(monthKey, JSON.stringify({
+        usage: usage,
+        point: 포인트
+      }));
+
+      // 칭찬 메시지
       let 칭찬 = "";
       if (절감량 >= 20) {
         칭찬 = "🎉 환경 영웅입니다! 큰 절감을 달성했어요!";
@@ -97,14 +174,14 @@
         칭찬 = "⚠️ 기준보다 더 많이 사용했어요. 함께 줄여봐요!";
       }
 
-      // 목표 달성 여부
       let 목표결과 = "";
       if (usage <= target) {
         목표결과 = `✅ 설정한 목표(${target}kg) 달성에 성공했습니다!`;
       } else {
-        목표결과 = `❌ 아쉽게도 목표(${target}kg) 달성 실패. 다음 달엔 가능해요!`;
+        목표결과 = `❌ 목표(${target}kg) 달성 실패. 다음 달엔 가능해요!`;
       }
 
+      // 출력
       const output = document.getElementById("output");
       output.style.display = "block";
       output.innerHTML = `
@@ -113,12 +190,36 @@
         ▸ 실제 사용량: <span class="highlight">${usage}kg</span><br>
         ▸ 절감량: <span class="highlight">${절감량}kg</span><br>
         ▸ 이번 달 포인트: <span class="highlight">${포인트}점</span><br>
-        ▸ 누적 포인트: <span class="highlight">${누적포인트}점</span><br>
         ▸ 감면 예상액: <span class="highlight">${감면액.toLocaleString()}원</span><br>
         ▸ 이산화탄소 절감량: <span class="highlight">${co2절감.toFixed(1)}kg</span>
-
         <div class="message">${칭찬}<br>${목표결과}</div>
       `;
+
+      // 포인트 박스 갱신
+      document.getElementById("pointBox").innerHTML = `${apt} 단지<br>💠 ${누적포인트}점`;
+    }
+
+    function showHistory() {
+      const apt = document.getElementById("aptName").value.trim();
+      if (!apt) {
+        alert("단지 이름을 먼저 입력하세요.");
+        return;
+      }
+
+      let output = `<h3>${apt} 단지의 월별 기록</h3><ul>`;
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith(`history_${apt}_`)) {
+          const month = key.replace(`history_${apt}_`, '');
+          const data = JSON.parse(localStorage.getItem(key));
+          output += `<li>${month} : 사용량 ${data.usage}kg → 포인트 ${data.point}점</li>`;
+        }
+      }
+      output += `</ul>`;
+
+      const historyDiv = document.getElementById("history");
+      historyDiv.innerHTML = output;
+      historyDiv.style.display = "block";
     }
   </script>
 
