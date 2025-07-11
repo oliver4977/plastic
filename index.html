@@ -1,227 +1,161 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html>
 <head>
   <meta charset="UTF-8">
-  <title>플라스틱 절감 포인트 계산기</title>
+  <title>자동 플라스틱 사용 측정 시스템</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
       background: #f4f8fc;
       margin: 0;
-      padding: 20px 20px 20px 260px;
-    }
+      padding: 40px;
+    }header {
+  background-color: #2a5d9f;
+  color: white;
+  padding: 20px;
+  font-size: 24px;
+  text-align: center;
+  border-radius: 8px;
+}
 
-    header {
-      background-color: #2a5d9f;
-      color: white;
-      padding: 15px;
-      font-size: 20px;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      z-index: 1000;
-    }
+main {
+  max-width: 700px;
+  margin: 40px auto;
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
 
-    .sidebar {
-      position: fixed;
-      top: 60px;
-      left: 0;
-      width: 240px;
-      background-color: #eef3fa;
-      height: 100%;
-      padding: 20px;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-    }
+select, button {
+  padding: 12px;
+  margin-top: 20px;
+  width: 100%;
+  font-size: 16px;
+}
 
-    .sidebar h3 {
-      color: #2a5d9f;
-      margin-bottom: 10px;
-    }
+button {
+  background-color: #2a5d9f;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
 
-    .sidebar p {
-      font-size: 18px;
-      color: #007700;
-      font-weight: bold;
-    }
+.result {
+  margin-top: 30px;
+  padding: 20px;
+  background: #f0f9ff;
+  border-left: 5px solid #3399ff;
+}
 
-    main {
-      max-width: 600px;
-      margin: 100px auto;
-      padding: 20px;
-    }
+.highlight {
+  color: #007700;
+  font-weight: bold;
+}
 
-    input, button {
-      padding: 10px;
-      margin: 10px 0;
-      width: 100%;
-      font-size: 16px;
-    }
+#chartContainer {
+  margin-top: 40px;
+  display: none;
+}
 
-    button {
-      background-color: #2a5d9f;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      margin-top: 20px;
-    }
-
-    .highlight {
-      color: #007700;
-      font-weight: bold;
-    }
-
-    .message {
-      margin-top: 10px;
-      padding: 10px;
-      background-color: #e6f7ff;
-      border-left: 5px solid #3399ff;
-    }
-
-    .notice {
-      font-size: 14px;
-      color: #666;
-      margin-top: 30px;
-      background: #fff4d6;
-      padding: 10px;
-      border-left: 4px solid #ffaa00;
-    }
-
-    .history {
-      background: #fff;
-      margin-top: 20px;
-      padding: 15px;
-      border: 1px dashed #999;
-    }
   </style>
 </head>
-<body>
+<body>  <header>플라스틱 자동 측정 시뮬레이션</header>  <main>
+    <label for="apt">아파트 단지 선택:</label>
+    <select id="apt">
+      <option>한내들</option>
+      <option>이안</option>
+      <option>부영</option>
+    </select><button onclick="simulateMeasurement()">📦 자동 측정 시작</button>
+<button onclick="showChart()">📊 월별 차트 보기</button>
 
-  <header>플라스틱 절감 포인트 시스템</header>
+<div class="result" id="output" style="display:none;"></div>
+<div id="chartContainer">
+  <canvas id="usageChart"></canvas>
+</div>
 
-  <div class="sidebar">
-    <h3>🏢 누적 포인트</h3>
-    <p id="pointBox">단지를 입력하세요</p>
-  </div>
+  </main>  <script>
+    const 기준사용량 = 100;
+    const 목표사용량 = 90;
 
-  <main>
-    <h2>이번 달 사용량을 입력하세요</h2>
-    <input type="text" id="aptName" placeholder="단지 이름 (예: 한내들)">
-    <input type="number" id="usage" placeholder="이번 달 사용량 (kg)">
-    <input type="number" id="target" placeholder="목표 사용량 설정 (kg)">
-    <button onclick="calculate()">계산하기</button>
+    function getCurrentMonth() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
 
-    <div class="card" id="output" style="display:none;"></div>
-
-    <button onclick="showHistory()">📅 월별 기록 보기</button>
-    <div id="history" class="history" style="display:none;"></div>
-
-    <div class="notice">
-      ※ 실제애서는 직접입력이 아닌 계량기를 이용하여 자료를 집계합니다
-    </div>
-  </main>
-
-  <script>
-    const 기준량 = 100;
-
-    function calculate() {
-      const apt = document.getElementById("aptName").value.trim();
-      const usage = parseFloat(document.getElementById("usage").value);
-      const target = parseFloat(document.getElementById("target").value);
-
-      if (!apt || isNaN(usage) || isNaN(target)) {
-        alert("모든 정보를 정확히 입력해주세요.");
-        return;
-      }
-
-      const 절감량 = Math.max(0, 기준량 - usage);
+    function simulateMeasurement() {
+      const apt = document.getElementById("apt").value;
+      const 사용량 = Math.floor(Math.random() * 40) + 60; // 60~99kg
+      const 절감량 = Math.max(0, 기준사용량 - 사용량);
       const 포인트 = 절감량 * 10;
       const 감면액 = 포인트 * 100;
       const co2절감 = 절감량 * 2.5;
 
-      const now = new Date();
-      const yearMonth = now.toISOString().slice(0, 7); // "2025-07"
+      let 메시지 = "";
+      if (절감량 >= 20) 메시지 = "🎉 환경 영웅입니다!";
+      else if (절감량 >= 10) 메시지 = "👍 우수 절감!";
+      else if (절감량 > 0) 메시지 = "😊 좋은 출발입니다!";
+      else 메시지 = "⚠️ 기준보다 많이 사용했습니다.";
 
-      // 누적 포인트 저장
-      const key = `point_${apt}`;
-      const 기존포인트 = parseInt(localStorage.getItem(key)) || 0;
-      const 누적포인트 = 기존포인트 + 포인트;
-      localStorage.setItem(key, 누적포인트);
+      let 목표결과 = (사용량 <= 목표사용량)
+        ? `✅ 목표(${목표사용량}kg) 달성!`
+        : `❌ 목표(${목표사용량}kg) 달성 실패.`;
 
-      // 월별 변화 저장
-      const monthKey = `history_${apt}_${yearMonth}`;
-      localStorage.setItem(monthKey, JSON.stringify({
-        usage: usage,
-        point: 포인트
-      }));
-
-      // 칭찬 메시지
-      let 칭찬 = "";
-      if (절감량 >= 20) {
-        칭찬 = "🎉 환경 영웅입니다! 큰 절감을 달성했어요!";
-      } else if (절감량 >= 10) {
-        칭찬 = "👍 우수 절감! 지속적인 노력이 보여요!";
-      } else if (절감량 > 0) {
-        칭찬 = "😊 좋은 출발입니다! 다음 달도 기대돼요!";
-      } else {
-        칭찬 = "⚠️ 기준보다 더 많이 사용했어요. 함께 줄여봐요!";
-      }
-
-      let 목표결과 = "";
-      if (usage <= target) {
-        목표결과 = `✅ 설정한 목표(${target}kg) 달성에 성공했습니다!`;
-      } else {
-        목표결과 = `❌ 목표(${target}kg) 달성 실패. 다음 달엔 가능해요!`;
-      }
-
-      // 출력
       const output = document.getElementById("output");
       output.style.display = "block";
       output.innerHTML = `
-        <h3>${apt} 단지의 결과</h3>
-        ▸ 기준 사용량: <span class="highlight">${기준량}kg</span><br>
-        ▸ 실제 사용량: <span class="highlight">${usage}kg</span><br>
+        <h3>${apt} 단지 측정 결과</h3>
+        ▸ 측정된 사용량: <span class="highlight">${사용량}kg</span><br>
+        ▸ 기준 사용량: ${기준사용량}kg<br>
         ▸ 절감량: <span class="highlight">${절감량}kg</span><br>
-        ▸ 이번 달 포인트: <span class="highlight">${포인트}점</span><br>
+        ▸ 포인트 획득: <span class="highlight">${포인트}점</span><br>
         ▸ 감면 예상액: <span class="highlight">${감면액.toLocaleString()}원</span><br>
-        ▸ 이산화탄소 절감량: <span class="highlight">${co2절감.toFixed(1)}kg</span>
-        <div class="message">${칭찬}<br>${목표결과}</div>
+        ▸ 이산화탄소 절감량: <span class="highlight">${co2절감.toFixed(1)}kg</span><br>
+        <br>
+        ${메시지}<br>${목표결과}
       `;
 
-      // 포인트 박스 갱신
-      document.getElementById("pointBox").innerHTML = `${apt} 단지<br>💠 ${누적포인트}점`;
+      // 월별 저장
+      const month = getCurrentMonth();
+      const key = `usage_${apt}`;
+      let data = JSON.parse(localStorage.getItem(key)) || {};
+      data[month] = 사용량;
+      localStorage.setItem(key, JSON.stringify(data));
     }
 
-    function showHistory() {
-      const apt = document.getElementById("aptName").value.trim();
-      if (!apt) {
-        alert("단지 이름을 먼저 입력하세요.");
-        return;
-      }
+    function showChart() {
+      const apt = document.getElementById("apt").value;
+      const key = `usage_${apt}`;
+      const data = JSON.parse(localStorage.getItem(key)) || {};
+      const labels = Object.keys(data).sort();
+      const values = labels.map(month => data[month]);
 
-      let output = `<h3>${apt} 단지의 월별 기록</h3><ul>`;
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith(`history_${apt}_`)) {
-          const month = key.replace(`history_${apt}_`, '');
-          const data = JSON.parse(localStorage.getItem(key));
-          output += `<li>${month} : 사용량 ${data.usage}kg → 포인트 ${data.point}점</li>`;
+      const ctx = document.getElementById('usageChart').getContext('2d');
+      document.getElementById("chartContainer").style.display = "block";
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: `${apt} 월별 플라스틱 사용량 (kg)`,
+            data: values,
+            borderColor: '#2a5d9f',
+            backgroundColor: 'rgba(42, 93, 159, 0.1)',
+            fill: true,
+            tension: 0.2
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true },
+            title: {
+              display: true,
+              text: `${apt} 아파트의 월별 사용량 추이`
+            }
+          }
         }
-      }
-      output += `</ul>`;
-
-      const historyDiv = document.getElementById("history");
-      historyDiv.innerHTML = output;
-      historyDiv.style.display = "block";
+      });
     }
-  </script>
-
-</body>
+  </script></body>
 </html>
